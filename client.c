@@ -12,13 +12,14 @@ static void terminal_init(void);
 static void terminal_done(void);
 
 static void     printMap (unsigned player, unsigned char *map);
-static unsigned readPos  (unsigned player);
-static unsigned choosePos(unsigned player);
+static unsigned readPos  (unsigned player, struct shared *shared);
+static unsigned choosePos(unsigned player, struct shared *shared);
 
 
-int runClient(int flags) {
+int runClient(int flags, struct shared *shared) {
 	unsigned player, done = 0, winner;
-	unsigned(*makeMove)(unsigned) = flags & 4 ? choosePos : readPos;
+	unsigned(*makeMove)(unsigned, struct shared*) =
+		flags & 4 ? choosePos : readPos;
 
 	/* What number are we */
 	puts("Waiting for server to be ready...");
@@ -32,7 +33,7 @@ int runClient(int flags) {
 	       player_numbers[player]);
 
 	/* Initialize terminal */
-	if (!(flags & 4)) {
+	if (!(flags & FL_CLIENT_NCP)) {
 		terminal_init();
 	}
 
@@ -48,7 +49,7 @@ int runClient(int flags) {
 			break;
 
 		case MSG_MAKE_MOVE:         /* Read move from user */
-			shared->data = makeMove(player);
+			shared->data = makeMove(player, shared);
 			break;
 
 		case MSG_GAME_OVER:         /* Game ends */
@@ -89,8 +90,14 @@ static const char *const marks[2][3] = {
 
 /* Print the map */
 static void     printMap(unsigned player, unsigned char *map) {
+	static int cleared = 0;
 	unsigned pos = 0;
-	puts("\33[2J\33[1;1H  A B C D E F G H");
+
+	if (!cleared) {
+		printf("\33[2J");
+		cleared = 1;
+	}
+	puts("\33[1;1H  A B C D E F G H");
 	while (pos < 64) {
 		int x;
 		printf("%c", '1' + (pos >> 3));
@@ -105,7 +112,7 @@ static void     printMap(unsigned player, unsigned char *map) {
 
 
 /* Read move from user */
-static void drawPos(unsigned pos, unsigned player) {
+static void drawPos(unsigned pos, unsigned player, struct shared *shared) {
 	const unsigned x = pos & 7;
 	const unsigned y = pos >> 3;
 	unsigned char tmp_map[64];
@@ -134,13 +141,13 @@ static int getKey(void) {
 	return ch != EOF ? ch << 16 : EOF;
 }
 
-static unsigned readPos(unsigned player) {
+static unsigned readPos(unsigned player, struct shared *shared) {
 	static unsigned pos = 0;
 	(void)player;
 
 	for(;;) {
 		unsigned prevPos = pos;
-		drawPos(pos, player);
+		drawPos(pos, player, shared);
 		do {
 			int ch = getKey();
 			if (ch == EOF) exit(1);
@@ -181,7 +188,7 @@ static unsigned readPos(unsigned player) {
 
 
 /* Choose position at random */
-static unsigned choosePos(unsigned player) {
+static unsigned choosePos(unsigned player, struct shared *shared) {
 	unsigned char pos[64];
 	unsigned i;
 

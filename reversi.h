@@ -12,19 +12,28 @@
 #endif
 
 
-/* If cond is met prints error message end exists(1) */
-#define DIE(cond, msg) if (cond) { perror(msg); exit(1); } else (void)0
+/* If cond is met prints error message end exits(1) */
+#define DIE_ON(cond, msg) if (cond) { perror(msg); exit(1); } else (void)0
 
 
 /* Possible flags */
 enum {
-	FL_SERVER    = 1,
-	FL_DAEMONIZE = 2
+	FL_SERVER     = 1,
+	FL_DAEMONIZE  = 2,
+	FL_CLIENT_NCP = 4
+};
+
+
+/* Possible states of map elements */
+enum {
+	MAP_PLAYER_0 = 0,
+	MAP_PLAYER_1 = 1,
+	MAP_EMPTY    = 2
 };
 
 
 /* Pointer to shared memory */
-extern struct shared {
+struct shared {
 	unsigned char map[8 * 8];
 
 	enum {
@@ -34,11 +43,12 @@ extern struct shared {
 	} message;
 
 	unsigned data;
-} *shared;
+};
+
 
 /* Server and client codes run from main() */
-int runServer(int flags);
-int runClient(int flags);
+int runServer(int flags, struct shared *shared);
+int runClient(int flags, struct shared *shared);
 
 
 /* Semaphores numbers */
@@ -54,6 +64,11 @@ enum {
 
 /* Array where first element is "one", and second "two". */
 extern const char *const player_numbers[2];
+
+/* Returns opponent of player */
+static inline unsigned opponent(unsigned player) {
+	return player ^ 1;
+}
 
 
 /* Semaphore operations. */

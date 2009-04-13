@@ -18,8 +18,6 @@
 #include "reversi.h"
 
 
-struct shared *shared = 0;
-
 const char *const player_numbers[] = { "one", "two" };
 
 
@@ -27,11 +25,12 @@ static struct {
 	int server;
 	int sem;
 	int shm;
-} config = { -1, -1, -1 };
+	struct shared *shared;
+} config = { -1, -1, -1, 0 };
 
 
 static const struct mode {
-	int (*const func)(int flags);
+	int (*const func)(int flags, struct shared *shared);
 	unsigned flags;
 	const char *const name;
 	const char *const desc;
@@ -42,9 +41,9 @@ static const struct mode {
 	  "daemon", "server running as a daemon in background" },
 	{ runClient, 0,
 	  "client", "client controlled by human" },
-	{ runClient, 4,
+	{ runClient, FL_CLIENT_NCP,
 	  "ncp"   , "client controlled by computer" },
-	{ runClient, 4 | FL_DAEMONIZE,
+	{ runClient, FL_DAEMONIZE | FL_CLIENT_NCP,
 	  "ncpd"  , "client controlled by computer running in background" },
 	{ 0, 0, 0, 0 }
 };
@@ -92,36 +91,36 @@ int main(int argc, char **argv) {
 
 	/* Get semaphores */
 	config.sem = semget(key, SEM_COUNT, i);
-	DIE(config.sem < 0, "semget");
+	DIE_ON(config.sem < 0, "semget");
 
 	/* Get shared memory */
-	config.shm = shmget(key, sizeof *shared, i);
-	DIE(config.shm < 0, "shmget");
+	config.shm = shmget(key, sizeof *config.shared, i);
+	DIE_ON(config.shm < 0, "shmget");
 
 	/* Attach shared memory */
-	shared = shmat(config.shm, 0, 0);
-	DIE(!shared, "shmat");
+	config.shared = shmat(config.shm, 0, 0);
+	DIE_ON(!config.shared, "shmat");
 
 
 	/* Daemonize if requested */
 	if (mode->flags & FL_DAEMONIZE) {
 		/* Fork into background */
 		switch (fork()) {
-		case -1: DIE(1, "fork");
+		case -1: DIE_ON(1, "fork");
 		case  0: break;
 		default: _exit(0);
 		}
 
 		/* Change dir */
-		DIE(chdir("/"), "chdir: /");
+		DIE_ON(chdir("/"), "chdir: /");
 
 		/* Start our own session -- loose controlling terminal */
-		DIE(setsid() < 0, "setsid");
+		DIE_ON(setsid() < 0, "setsid");
 
 		/* Fork once again so we won't be able to regain controlling
 		   terminal */
 		switch (fork()) {
-		case -1: DIE(1, "fork");
+		case -1: DIE_ON(1, "fork");
 		case  0: break;
 		default: _exit(0);
 		}
@@ -130,29 +129,29 @@ int main(int argc, char **argv) {
 		for (i = sysconf(_SC_OPEN_MAX); i > 3; close(--i)) {
 			/* nop */
 		}
-		DIE(close(0) < 0, "close: stdin");
-		DIE(open("/dev/null", O_RDONLY) < 0, "open: /dev/null");
-		DIE(close(1) < 0, "close: stdout");
-		DIE(open("/dev/null", O_WRONLY) < 0, "open: /dev/null");
-		DIE(dup2(1, 2) < 0, "dup: stdout, stderr");
+		DIE_ON(close(0) < 0, "close: stdin");
+		DIE_ON(open("/dev/null", O_RDONLY) < 0, "open: /dev/null");
+		DIE_ON(close(1) < 0, "close: stdout");
+		DIE_ON(open("/dev/null", O_WRONLY) < 0, "open: /dev/null");
+		DIE_ON(dup2(1, 2) < 0, "dup: stdout, stderr");
 	}
 
 
 	/* Start the app */
 	srand(time(0));
-	return mode->func(mode->flags);
+	return mode->func(mode->flags, config.shared);
 }
 
 
 
 static void shared_done(void) {
 	/* Deattach shared memory */
-	if (shared) {
-		shmdt(shared);
-		shared = 0;
+	if (config.shared) {
+		shmdt(config.shared);
+		config.shared = 0;
 	}
 
-	/* If we are not server tere's nothing more to be done */
+	/* If we are not server there's nothing more to be done */
 	if (config.server != 1) {
 		return;
 	}
@@ -196,7 +195,7 @@ int  sem_do(int num, int op, int tout) {
 		ret = semop(config.sem, &buf, 1);
 	}
 
-	DIE(ret < 0 && errno != EAGAIN, "semop");
+	DIE_ON(ret < 0 && errno != EAGAIN, "semop");
 	return ret == 0;
 }
 

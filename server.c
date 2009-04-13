@@ -18,16 +18,16 @@ static pid_t pids[2];
 /* Sends message to user and wait for reply */
 static inline void doSend(unsigned num);
 /* Sends a READ_MAP message to both users */
-static        void doReadMap(void);
+static        void doReadMap(struct shared *shared);
 
 /* Is there any possible move for user */
 extern int  canMove(unsigned player);
 
 
 /* Main loop */
-static void doInit (void); /* Init game */
-static void doPlay (void); /* Play the game */
-static void doEnd  (void); /* Announce the result */
+static void doInit (struct shared *shared); /* Init game */
+static void doPlay (struct shared *shared); /* Play the game */
+static void doEnd  (struct shared *shared); /* Announce the result */
 
 
 /* On signal exit gracefully */
@@ -38,7 +38,7 @@ static void handleSignal(int sig) {
 
 
 /* Server */
-int runServer(int flags) {
+int runServer(int flags, struct shared *shared) {
 	(void)flags;
 
 	signal(SIGINT , handleSignal);
@@ -46,15 +46,15 @@ int runServer(int flags) {
 	signal(SIGTERM, handleSignal);
 
 	for (;;) {
-		doInit();
-		doPlay();
-		doEnd();
+		doInit(shared);
+		doPlay(shared);
+		doEnd(shared);
 	}
 }
 
 
 /* Intialize the game */
-static void doInit(void) {
+static void doInit(struct shared *shared) {
 	/* Wait for players */
 	puts("Waiting for players...");
 	pids[0] = pids[1] = 0;
@@ -75,28 +75,29 @@ static void doInit(void) {
 	private_map[4 + 3 * 8] = private_map[3 + 4 * 8] = 1;
 
 	/* Make them read the map */
-	doReadMap();
+	doReadMap(shared);
 }
 
 
 /* Play the game */
-static void doPlay(void) {
+static void doPlay(struct shared *shared) {
 	unsigned player;
 
 	player = rand() & 1;
-	while (canMove(player ^= 1) || canMove(player ^= 1)) {
+	while (canMove(player = opponent(player)) ||
+	       canMove(player = opponent(player))) {
 		printf("Waiting for player %s...\n", player_numbers[player]);
 		do {
 			shared->message = MSG_MAKE_MOVE;
 			doSend(SEM_PLAYERS + player);
 		} while (!doMove(shared->data, player, private_map));
 
-		doReadMap();
+		doReadMap(shared);
 	}
 }
 
 
-static void doEnd(void) {
+static void doEnd(struct shared *shared) {
 	unsigned count[] = { 0, 0, 0 }, i;
 
 	for (i = 0; i < 64; ++i) {
@@ -155,7 +156,7 @@ static inline void doSend(unsigned num) {
 	doDown(1);
 }
 
-static void doReadMap(void) {
+static void doReadMap(struct shared *shared) {
 	memcpy(shared->map, private_map, sizeof shared->map);
 	shared->message = MSG_READ_MAP;
 	up(SEM_PLAYER_0);

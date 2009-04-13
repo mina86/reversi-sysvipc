@@ -1,0 +1,382 @@
+\documentclass[a4paper,11pt,twoside]{article}
+\usepackage[MeX]{polski}
+\usepackage[latin2]{inputenc}
+
+\usepackage{listings}
+\lstdefinelanguage{pseudo}{morekeywords={DEFINE,AS,IF,ELSE,WHILE,DO,
+    RETURN,BREAK,true,false,NOT}, sensitive=true,
+  mathescape=true, morecomment=[s]{/*}{*/},
+  literate={:=}{{$\gets$}}1 {<=}{{$\leq$}}1 {>=}{{$\geq$}}1
+  {!=}{{$\neq$}}1 {==}{{$=$}}1 {NOT }{$\neg$}1}
+\lstset{language=pseudo, basicstyle=\small, numbers=left,
+  numberstyle=\tiny, stepnumber=1, numbersep=5pt, numberblanklines=false,
+  breaklines=true, breakindent=20pt, extendedchars=true, frameround=fttt,
+  aboveskip=12pt, belowskip=12pt, tabsize=8, showtabs=false}
+
+%%
+%% Penalties
+%%
+%\overfullrule = 3mm       % zaznacz linijki z nadmiarami czarn± sztabk±
+\exhyphenpenalty = 999999 % s³owa z³o¿one nie przeno¶ na ³±czniku
+\righthyphenmin = 3       % nie dziel xx-, ale xxx-
+\widowpenalty = 999999    % ostatnia linia akapitu nie zacznie strony
+\clubpenalty = 999999     % pierwsza linia akapitu nie zacznie strony
+%\clubpenalty = 9950  % pierwsza linia akapitu wyj±tkowo mo¿e koñczyæ stronê
+\hfuzz = 0pt              % znaki nie mog± sterczeæ na margines
+%\hfuzz = 3pt              % znaki mog± sterczeæ na margines do wielko¶ci 3pt
+\tolerance 600            % zwiêkszamy toleracjê
+\pretolerance 300         % oraz pretolerancjê
+\doublehyphendemerits = 99999 %% zniechêcamy TeX-a do dzielenia wyrazów
+
+
+\renewcommand\thesection{\arabic{section}.}
+\renewcommand\thesubsection{\thesection\arabic{subsection}.}
+\renewcommand\thefigure{\arabic{figure}.}
+
+
+%% Margins
+%\addtolength{\topmargin}{-20pt}
+%\addtolength{\textheight}{40pt}
+%\addtolength{\leftmargin}{-20pt}
+%\addtolength{\rightmargin}{-20pt}
+%\addtolength{\textwidth}{40pt}
+
+
+%%
+%% Modify page headers and footers
+%%
+\usepackage{fancyhdr}
+\pagestyle{fancyplain}
+\renewcommand{\sectionmark}[1]{\markright{#1}}
+\lhead[\fancyplain{}{\renewcommand\familydefault{\rmdefault}%
+      \normalfont \small\bfseries\thepage}]
+     {\fancyplain{}{\renewcommand\familydefault{\rmdefault}%
+      \normalfont \small\bfseries\rightmark}}
+\rhead[\fancyplain{}{\renewcommand\familydefault{\rmdefault}%
+     \normalfont \small\bfseries{Reversi}}]
+    {\fancyplain{}{\renewcommand\familydefault{\rmdefault}%
+     \normalfont \small\bfseries\thepage}}
+\cfoot[]{}
+\addtolength{\headheight}{1.6pt}
+
+
+\title{Reversi}
+\author{Micha³ Nazarewicz}
+
+
+
+\begin{document}
+
+\thispagestyle{empty}
+
+\vspace{60pt}
+\centerline{\bf \Huge{Reversi}}
+\vspace{30pt}
+\centerline{\Large Micha³ Nazarewicz}
+\vspace{10pt}
+\centerline{M.Nazarewicz@stud.elka.pw.edu.pl}
+\vspace{30pt}
+\centerline{\today}
+\vspace{60pt}
+
+\tableofcontents
+\listoffigures
+
+
+
+\section{Opis projektu}\label{opis}
+
+Projekt polega na napisaniu dwu osobowej gry dzia³aj±cej pod kontrol±
+uniksopodobnego systemu.  W~programie obecny jest serwer, który
+nadzoruje rozgrywkê oraz dwa klienty, które komunikuj± siê z~serwerem
+i~umo¿liwiaj± uczestnictwo w~rozgrywce.
+
+Zaimplementowan± gr± jest gra Reversi (zwana równie¿ pod nazw±
+Othello\texttrademark) rozgrywana na planszy o~wymiarach $8 \times 8$,
+w~której gracze wykonuj±c naprzemienne ruchy staraj± siê zape³niæ
+planszê jak najwiêksz± liczb± pionów swojego koloru.
+
+\subsection{Zasady gry Reversi}\label{zasady}
+
+Gra rozgrywana jest na planszy $8 \times 8$.  Ka¿dy z~dwóch graczy ma
+do dyspozycji pionki swojego koloru.  Pocz±tkowo na planszy znajduj±
+siê po dwa pionki ka¿dego z~graczy, u³o¿one na ¶rodkowych czterech
+polach tak, ¿e pionki tego samego gracza le¿± na polach stykaj±cych
+siê rogiem.
+
+W~trakcie rozrywki, gracze uk³adaj± na przemian pionki w³asnego koloru
+na wolnych polach planszy do momentu, a¿ plansza zostanie ca³kowicie
+zape³niona lub ¿aden z~graczy nie bêdzie móg³ wykonaæ dozwolonego
+ruchu.
+
+Dozwolony ruch to taki, w~którym pionek jest u³o¿ony na polu, które
+znajduje siê w linii (poziomej, pionowej lub uko¶nej) z~innym pionkiem
+gracza wykonuj±cego ruch, i~na wszystkich polach pomiêdzy wybranym
+polem a~tym pionkiem znajduj± siê pionki przeciwnika.  Te pionki
+zostaj± po wykonaniu ruchu przejête i~zmieniaj± kolor na przeciwny
+(tzn. na kolor pionków gracza, który wykonuje ruch).
+
+Je¶li gracz nie mo¿e wykonaæ dozwolonego ruchu, traci automatycznie
+kolejkê.
+
+Wygrywa ten z graczy, którego wiêksza liczba pionków znajduje siê na
+planszy po zakoñczeniu gry; je¶li liczba pionków graczy jest
+jednakowa, nastêpuje remis.
+
+{\small Opis zasad zaczerpniêty z~serwisu kurnik.pl.}
+
+
+
+\section{Funkcjonalno¶æ i~interfejs u¿ytkownika}
+
+W~rozgrywce bior± udzia³ trzy procesy: serwer oraz dwa klienty.
+Serwer mo¿e zostaæ uruchomiony w~tle lub na pierwszym planie.  W~tym
+drugim przypadku widoczne s± komunikaty informuj±ce o~akcjach
+powziêtych przez serwer (oczekiwanie na graczy, na wykonanie ruchu,
+og³oszenie wyniku itp).
+
+Klient mo¿e byæ sterowany przez cz³owieka lub komputer.  Dodatkowo, w drugim
+trybie mo¿e byæ uruchomiony w~tle lub na pierwszym planie i~wówczas
+pozwala na ¶ledzenie stanu rozgrywki.
+
+
+\subsection{Uruchamianie programów}
+
+Program uruchamiany jest z~linii poleceñ.  Przyjmuje dwa argumenty:
+tryb pracy oraz klucz rozgrywki.  Uruchomiony z~niepoprawn± liczb±
+argumentów lub z~nieznanym trybem lub b³êdnym kluczem program wypisuje
+nastêpuj±cy ekran pomocy (przedstawiony na rysunku \ref{fig:pomoc}).
+Jak ju¿ wspomniano, dostêpnych jest piêæ trybów pracy:
+
+\begin{description}
+\item[{\tt server}] serwer na pierwszym planie,
+\item[{\tt daemon}] serwer w~tle,
+\item[{\tt client}] klient sterowany przez u¿ytkownika,
+\item[{\tt ncp}]    (od ang.\ {\it Non Playable Character}) klient
+                    sterowany przez komputer jednak poniewa¿
+                    uruchomiony jest na pierwszym planie umo¿liwia
+                    ¶ledzenie rozgrywki oraz
+\item[{\tt ncpd}]   klient sterowany przez komputer dzia³aj±cy w~tle.
+\end{description}
+
+\begin{figure}
+\begin{verbatim}
+usage: reversi <mode> <key>
+<mode> is one of:
+  server     server running in foreground
+  daemon     server running as a daemon in background
+  client     client controlled by human
+  ncp        client controlled by computer
+  ncpd       client controlled by computer running in background
+\end{verbatim}
+\caption{Pomoc wypisywana po uruchomieniu programu z~b³êdnymi argumentami.}\label{fig:pomoc}
+\end{figure}
+
+
+Drugi argument--klucz gry--jest kluczem wykorzystywanym przy tworzeniu
+(w~przypadku serwera) i~uzyskiwaniu dostêpu do (w~przypadku klientów)
+zasobów wspó³dzielonych.  Klucz ten pozwala identyfikowaæ dan±
+rozgrywkê i~prowadziæ wiele gier jednocze¶nie--aby do³±czyæ siê do
+gry u¿ytkownik musi znaæ jej klucz.
+
+
+\subsection{Serwer}
+
+Serwer uruchomiony na pierwszym planie wypisuje ró¿ne komunikaty
+informuj±ce o~tym co obecnie robi (widoczne na rysunku
+\ref{fig:serwer}).  Informacje te maj± g³ównie zastosowanie przy
+sprawdzaniu poprawno¶ci dzia³ania programu i~dlatego serwer mo¿e byæ
+uruchomiony równie¿ w~tle.  Serwer dzia³a w~pêtli: czeka na graczy
+i~nadzoruje rozgrywkê.  Gdy runda siê zakoñczy wraca do pocz±tku
+i~czeka na kolejn± parê graczy.  Robi tak do momentu, gdy zostanie
+zatrzymany poprzez sygna³ (np.\ {\tt SIGINT}, {\tt SIGQUIT} lub {\tt
+  SIGTERM}).
+
+
+\begin{figure}
+\begin{verbatim}
+Waiting for players...
+Got player one...
+Got player two...
+Waiting for player one...
+Waiting for player two...
+\end{verbatim}
+i~tak dalej, a¿ gra siê zakoñczy
+\begin{verbatim}
+Waiting for player two...
+Waiting for player one...
+Player one wins
+\end{verbatim}
+i~rozpoczyna siê nastêpna rozgrywka.
+
+\caption{Komunikaty wypisywane przez serwer.}\label{fig:serwer}
+\end{figure}
+
+
+\subsection{Klient}
+
+Klient, o~ile nie zosta³ uruchomiony w~tle, zanim gra siê rozpocznie,
+wypisuje informacje o~tym co robi (rysunek \ref{fig:klient-start}),
+a~gdy rozgrywka siê rozpocznie wy¶wietla w~trybie tekstowym kolorow±
+planszê, na której odbywa siê gra (rysunek \ref{fig:klient-plansza}).
+
+W~trybie sterowani przez cz³owieka, u¿ytkownik mo¿e poruszaæ migaj±cym
+kursorem wykorzystuj±c strza³ki, cyfry {\it 8246} (jak na klawiaturze
+numerycznej), przyciski {\it wsad}, {\it pnbf} jaki i {\it pnbf}
+z~wci¶niêtym kontrolem (zgodnie ze sterowaniem w~Emacsie) oraz {\it
+  hjkl} (zgodnie ze sterowaniem w~edytorze vi).  Wci¶niêcie entera lub
+spacji powoduje wybranie danej pozycji.  W~trakcie, przemieszczania
+kursora program pokazuje jak wygl±da³aby plansza po wykonaniu danego
+ruchu.
+
+\begin{figure}
+\begin{verbatim}
+Waiting for server to be ready...
+You are player one
+Waiting for game to start...
+\end{verbatim}
+\caption{Komunikaty wypisywane przez klienta przed rozpoczêciem
+  rozgrywki.}\label{fig:klient-start}
+\end{figure}
+
+
+\begin{figure}
+\begin{verbatim}
+  A B C D E F G H
+1 . . . . . . . . 1
+2 . . . . X O . . 2
+3 . . . . X . . . 3
+4 . . O X X . . . 4
+5 . . X O O O . . 5
+6 . . . . . . . . 6
+7 . . . . . . . . 7
+8 . . . . . . . . 8
+  A B C D E F G H
+
+You are O
+\end{verbatim}
+\caption{Widok planszy po wykonaniu kilku
+  ruchów.}\label{fig:klient-plansza}
+\end{figure}
+
+
+
+\section{Podzia³ na modu³y}
+
+Na kwestiê podzia³u na modu³y mo¿na patrzeæ na dwa sposoby: albo
+analizuj±c pojedynczy proces, albo patrz±c ca³o¶ciowo na ca³±
+rozgrywkê.  W~pierwszym przypadku mamy podstawow± czê¶æ programu
+analizuj±c± argumenty wywo³ania i~przygotowuj±c± zasoby wspó³dzielone
+oraz w³a¶ciw± czê¶æ, w~której wykonywana jest logika gry.  W~drugim
+przypadku mamy jeden serwer i~dwa klienty porozumiewaj±ce siê poprzez
+zasoby wspó³dzielone.
+
+
+\subsection{Pojedynczy proces}
+
+Po uruchomieniu programu sprawdzane i~interpretowane s± argumenty
+wywo³ania.  Je¿eli s± one poprawne nastêpuje przygotowanie zasobów
+wspó³dzielonych.  Dodatkowo, je¿eli wybrano tryb pracy w~tle nastêpuje
+przej¶cie w~t³o wraz z~utrat± terminala steruj±cego, zamkniêciem
+niepotrzebnych deskryptorów plików i~przekierowanie wyj¶cia i~wej¶cia
+do/z~{\tt/dev/null}.  Gdy to wszystko siê dokona, zale¿nie od
+wybranego trybu wywo³ywana jest funkcja serwera lub klienta.
+
+Korzystaj±c z uzyskanych zasobów wspó³dzielonych, uruchomiona
+procedura wype³nia swoje zadanie, a¿ do momentu, gdy siê zakoñczy lub
+zostanie przerwana (czy to na skutek zakoñczenia gry, czy to b³êdnej
+sytuacji, czy te¿ otrzymania sygna³u).
+
+Wówczas sterowanie wraca ponownie do podstawowej czê¶ci programu,
+która odpowiedzialna jest za zwolnienie zasobów
+wspó³dzielonych--klienty jedynie je oddaj±, a~serwer niszczy.
+
+
+\subsection{Ca³o¶ciowa rozgrywka}
+
+
+
+\section{Algorytmy}
+
+Procesy obecne w~grze wspó³dziel± miêdzy sob± nastêpuj±ce zasoby:
+
+\vspace{1em}
+\begin{tabular}{ll}
+{\tt msg}            & identyfikator przesy³anej wiadomo¶ci \\
+{\tt data}           & dane przypisane do wiadomo¶ci \\
+{\tt map}            & zapis stanu planszy \\
+{\tt sem\_init}      & semafor inicjuj±cy \\
+{\tt sem\_server}    & semafor serwera \\
+{\tt sem\_player[2]} & dwa semafory -- jeden dla ka¿dego gracza \\
+\end{tabular}
+\vspace{1em}
+
+\subsection{Serwer}
+
+Po zainicjowaniu wspó³dzielonych zasobów serwer postêpuje wed³ug
+nastêpuj±cego algorytmu:
+
+\begin{lstlisting}
+DEFINE send ?message? to ?player?
+	msg := message
+	up sem_player[player]
+	down sem_server
+
+DEFINE send ?message? to both
+	msg := message
+	up sem_player[0], up sem_player[1]
+	down sem_server, down sem_server
+
+
+data := 0, send 0 to sem_init /* Czekaj na klienty i */
+data := 1, send 0 to sem_init /* przypisz im numery  */
+
+map := pocz±tkowy stan mapy   /* Zainicjuj mapê */
+send READ_MAP to both
+
+player := 1                   /* W³a¶ciwa rozgrywka */
+WHILE kto¶ mo¿e wykonaæ ruch
+	player := 1 - player
+	IF NOT gracz player mo¿e wykonaæ ruchu
+		player := 1 - player
+
+	DO                    /* Odczytaj ruch klienta */
+		send MAKE_MAKE to player
+	WHILE NOT data opisuje poprawny ruch
+
+	uaktualnij planszê    /* Przyjmij ruch */
+	send READ_MAP to both
+
+data := zwyciêzca gry         /* Koniec gry, og³o¶ wynik */
+send GAME_OVER to both
+\end{lstlisting}
+
+\subsection{Klient}
+
+Tymczasem klienty postêpuj± wg nastêpuj±cego schematu:
+
+\begin{lstlisting}
+/* Odczytaj swój numer */
+down sem_init
+player := data
+up sem_server
+
+/* Rozgrywka */
+done := false
+WHILE NOT done
+	down sem_player[player]
+	IF msg == READ_MAP
+		uaktualnij i~wy¶wietl planszê
+	ELSE IF msg == MAKE_MOVE
+		data := zdecyduj gdzie poruszyæ
+	ELSE IF msg == GAME_OEVR
+		winner := data
+		done := true
+	up sem_server
+
+/* Gra zakoñczona */
+wypisz informacje o zwyciêzcy (zapisana w winner)
+\end{lstlisting}
+
+\end{document}
+

@@ -1,24 +1,30 @@
 CC			?= gcc
 CPPFLAGS	?= -pipe -march=athlon64 -DNDEBUG -DG_DISABLE_ASSERT -s -O2 -fomit-frame-pointer -funit-at-a-time -fno-align-loops -fno-align-labels
 
+
 all: reversi
 doc: reversi.pdf
 
-server.o: server.c reversi.h
-client.o: client.c reversi.h
-reversi.o: reversi.c reversi.h
 
-reversi: reversi.o server.o client.o
+reversi: src/reversi.o src/server.o src/client.o
+	exec $(CC) $(LDFLAGS) -o reversi src/reversi.o src/server.o src/client.o
 
-reversi.dvi: reversi.tex
-	latex reversi.tex
+src/server.o: src/server.c src/reversi.h
+src/client.o: src/client.c src/reversi.h
+src/reversi.o: src/reversi.c src/reversi.h
 
-reversi.pdf: reversi.dvi
-	dvipdf reversi.dvi
 
-reversi.ps: reversi.dvi
-	dvips reversi.dvi
+doc/reversi.dvi: doc/reversi.tex doc/modules.eps
+	cd doc && exec latex -interaction=scrollmode reversi.tex
+	cd doc && exec latex -interaction=batchmode reversi.tex
+
+reversi.pdf: doc/reversi.dvi
+	exec dvipdf doc/reversi.dvi
+
+reversi.ps: doc/reversi.dvi
+	exec dvips doc/reversi.dvi
 
 
 clean::
-	rm -f -- *.o reversi reversi.dvi reversi.pdf reversi.ps
+	exec rm -f -- reversi reversi.pdf reversi.ps src/*.o
+	exec rm -f -- doc/reversi.aux doc/reversi.?o?

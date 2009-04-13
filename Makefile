@@ -15,14 +15,14 @@ src/reversi.o: src/reversi.c src/reversi.h
 
 
 doc/reversi.dvi: doc/reversi.tex doc/modules.eps
-	cd doc && exec latex -interaction=scrollmode reversi.tex
-	cd doc && exec latex -interaction=batchmode reversi.tex
+	cd doc && exec latex -file-line-error -interaction=scrollmode reversi.tex
+	cd doc && exec latex -file-line-error -interaction=batchmode  reversi.tex
 
 reversi.pdf: doc/reversi.dvi
-	exec dvipdf doc/reversi.dvi
+	cd doc && dvipdf reversi.dvi && mv reversi.pdf ..
 
 reversi.ps: doc/reversi.dvi
-	exec dvips doc/reversi.dvi
+	cd doc && dvips reversi.dvi && mv reversi.ps ..
 
 
 clean::

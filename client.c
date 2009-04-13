@@ -152,36 +152,55 @@ static unsigned readPos(unsigned player, struct shared *shared) {
 			int ch = getKey();
 			if (ch == EOF) exit(1);
 
-			switch (ch) {
+			switch (ch & ~('a' ^ 'A')) {
+				/* Return */
 			case '\n':
 			case '\r':
+			case ' ':
 				printMap(player, shared->map);
 				return pos;
 
+				/* Up */
 			case '8':
 			case 'w':
 			case 'A' << 16:
-				if (pos >> 3) pos -= 8;
+			case 'p':
+			case 'p' & 31:
+			case 'k':
+				pos -= 8;
 				break;
 
+				/* Down */
 			case '2':
 			case 's':
 			case 'B' << 16:
-				if ((pos >> 3) < 7) pos += 8;
-			break;
+			case 'n':
+			case 'n' & 31:
+			case 'j':
+				pos += 8;
+				break;
 
+				/* Left */
 			case '4':
 			case 'a':
 			case 'D' << 16:
-				if (pos) --pos;
-			break;
+			case 'b':
+			case 'b' & 31:
+			case 'h':
+				--pos;
+				break;
 
+				/* Right */
 			case '6':
 			case 'd':
 			case 'C' << 16:
-				if (pos != 63) ++pos;
-			break;
+			case 'f':
+			case 'f' & 31:
+			case 'l':
+				++pos;
+				break;
 			}
+			pos &= 63;
 		} while (prevPos == pos);
 	}
 }

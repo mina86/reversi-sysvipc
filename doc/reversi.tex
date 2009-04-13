@@ -1,6 +1,7 @@
-\documentclass[a4paper,11pt,twoside]{article}
+\documentclass[a4paper,11pt,twoside]{mwart}
 \usepackage[MeX]{polski}
 \usepackage[latin2]{inputenc}
+\usepackage{graphicx}
 
 \usepackage{listings}
 \lstdefinelanguage{pseudo}{morekeywords={DEFINE,AS,IF,ELSE,WHILE,DO,
@@ -12,35 +13,6 @@
   numberstyle=\tiny, stepnumber=1, numbersep=5pt, numberblanklines=false,
   breaklines=true, breakindent=20pt, extendedchars=true, frameround=fttt,
   aboveskip=12pt, belowskip=12pt, tabsize=8, showtabs=false}
-
-%%
-%% Penalties
-%%
-%\overfullrule = 3mm       % zaznacz linijki z nadmiarami czarn± sztabk±
-\exhyphenpenalty = 999999 % s³owa z³o¿one nie przeno¶ na ³±czniku
-\righthyphenmin = 3       % nie dziel xx-, ale xxx-
-\widowpenalty = 999999    % ostatnia linia akapitu nie zacznie strony
-\clubpenalty = 999999     % pierwsza linia akapitu nie zacznie strony
-%\clubpenalty = 9950  % pierwsza linia akapitu wyj±tkowo mo¿e koñczyæ stronê
-\hfuzz = 0pt              % znaki nie mog± sterczeæ na margines
-%\hfuzz = 3pt              % znaki mog± sterczeæ na margines do wielko¶ci 3pt
-\tolerance 600            % zwiêkszamy toleracjê
-\pretolerance 300         % oraz pretolerancjê
-\doublehyphendemerits = 99999 %% zniechêcamy TeX-a do dzielenia wyrazów
-
-
-\renewcommand\thesection{\arabic{section}.}
-\renewcommand\thesubsection{\thesection\arabic{subsection}.}
-\renewcommand\thefigure{\arabic{figure}.}
-
-
-%% Margins
-%\addtolength{\topmargin}{-20pt}
-%\addtolength{\textheight}{40pt}
-%\addtolength{\leftmargin}{-20pt}
-%\addtolength{\rightmargin}{-20pt}
-%\addtolength{\textwidth}{40pt}
-
 
 %%
 %% Modify page headers and footers
@@ -83,7 +55,8 @@
 \listoffigures
 
 
-
+\newpage
+\newpage
 \section{Opis projektu}\label{opis}
 
 Projekt polega na napisaniu dwu osobowej gry dzia³aj±cej pod kontrol±
@@ -127,6 +100,7 @@ jednakowa, nastêpuje remis.
 
 
 
+\newpage
 \section{Funkcjonalno¶æ i~interfejs u¿ytkownika}
 
 W~rozgrywce bior± udzia³ trzy procesy: serwer oraz dwa klienty.
@@ -159,7 +133,7 @@ Jak ju¿ wspomniano, dostêpnych jest piêæ trybów pracy:
 \item[{\tt ncpd}]   klient sterowany przez komputer dzia³aj±cy w~tle.
 \end{description}
 
-\begin{figure}
+\begin{figure}[btp]
 \begin{verbatim}
 usage: reversi <mode> <key>
 <mode> is one of:
@@ -193,7 +167,7 @@ zatrzymany poprzez sygna³ (np.\ {\tt SIGINT}, {\tt SIGQUIT} lub {\tt
   SIGTERM}).
 
 
-\begin{figure}
+\begin{figure}[btp]
 \begin{verbatim}
 Waiting for players...
 Got player one...
@@ -229,7 +203,7 @@ spacji powoduje wybranie danej pozycji.  W~trakcie, przemieszczania
 kursora program pokazuje jak wygl±da³aby plansza po wykonaniu danego
 ruchu.
 
-\begin{figure}
+\begin{figure}[btp]
 \begin{verbatim}
 Waiting for server to be ready...
 You are player one
@@ -240,7 +214,7 @@ Waiting for game to start...
 \end{figure}
 
 
-\begin{figure}
+\begin{figure}[btp]
 \begin{verbatim}
   A B C D E F G H
 1 . . . . . . . . 1
@@ -261,6 +235,7 @@ You are O
 
 
 
+\newpage
 \section{Podzia³ na modu³y}
 
 Na kwestiê podzia³u na modu³y mo¿na patrzeæ na dwa sposoby: albo
@@ -294,13 +269,143 @@ wspó³dzielonych--klienty jedynie je oddaj±, a~serwer niszczy.
 
 \subsection{Ca³o¶ciowa rozgrywka}
 
+Analizuj±c ca³± grê mo¿na wyró¿niæ trzy modu³y: serwer i~dwa klienty.
+Porozumiewaj± siê one przez zasoby wspó³dzielone: trzy ,,kolejki''
+(patrz sekcja \ref{kolejki}) oraz zapis planszy (dok³adny opis sposobu
+komunikacji opisany jest w~sekcji \ref{komunikacja}).  Ca³o¶æ
+przedstawiona jest na rysynku \ref{fig:moduly}.
+
+\begin{figure}[btp]
+\centering
+\includegraphics[width=\textwidth]{modules.eps}
+\caption{Podzia³ na modu³y i~komunikacja}\label{fig:moduly}
+\end{figure}
+
+Kolejka iniciuj±ca wykorzystywana jest tylko przy starcie klienta, aby
+ten móg³ odczytaæ, którym jest klientem--czy pierwszym czy drugim.
+W~dalszej czê¶ci rozgrywki kolejka ta nie jest wykorzystywana.
+
+Gdy klient dostaje komunikat na swojej kolejce od razu go obs³uguje,
+odczytuje stan planszy je¶li jest to konieczne, wykonuje wszelkie
+operacje, których od niego oczekuj± i~odsy³a odpowied¼.  Serwer
+odczytuje przekazane informacje (je¶li jakie¶ s±), analizuje dane
+i~przesy³a kolejn± wiadomo¶æ do jednego z~klientów.
+
+Klienty nigdy nie porozumiewaj± siê bezpo¶rednio miêdzy sob±.  Co
+wiêcej, wykonuj± dzia³ania na zasobach wspó³dzielonych tylko
+i~wy³±cznie, po otrzymaniu komunikatu od serwera zanim ode¶l±
+odpowied¼.  Poniewa¿ serwer zazwyczaj wysy³a wiadomo¶æ tylko do
+jednego z~klientów (s± dwa wyj±tki od tej regu³y opisane w~sekcji
+\ref{kolejki}) przewa¿nie, tylko jeden klient odczytuje dane
+z~wspó³dzielonej pamiêci, dziêki czemu nie ma obawy o~zniszczenie
+danych poprzez wy¶cigi.
 
 
-\section{Algorytmy}
+\newpage
+\section{Komunikacja i~algorytmy}\label{komunikacja}
 
-Procesy obecne w~grze wspó³dziel± miêdzy sob± nastêpuj±ce zasoby:
+Jak ju¿ zosta³o powiedziane wymiana informacji, a~tak¿e synchronizacja
+jest zapewniana poprzez specyficzne kolejki, których u¿ycie przypomina
+mechanizm RPC (ang.\ {\it Remote Procedure Call})--serwer wysy³a
+komunikat i~wówczas sterowanie przechodzi do klienta, który obs³uguje
+wiadomo¶æ i~wysy³a odpowied¼, w~którym to momencie sterowanie wraca do
+serwera.
 
-\vspace{1em}
+\subsection{Kolejki}\label{kolejki}
+
+Pojedyncza kolejka sk³ada siê z~dwóch semaforów--serwera
+i~klienta--pola typu wiadomo¶ci i~pola danych.  Klient opuszcza swój
+semafor, który jest podnoszony, gdy serwer wpisze odpowiednie dane.
+Wówczas klient mo¿e odczytaæ komunikat, wykonaæ odpowiednie operacje,
+zapisaæ odpowied¼ i~podnie¶æ semafor serwera, na którym rzeczony
+zasn±³ zaraz po wys³aniu wiadomo¶ci.  Rysunek \ref{fig:kolejka}
+przedstawia zapis sekwencji operacji wykonywanych przy przesy³aniu
+komunikatów.
+
+\begin{figure}[btp]
+\centering
+
+\begin{picture}(320,200)(0,0)
+\put( 30,180){\line(0,-1){180}}\put(  0,180){\framebox(60,20){\bf Serwer}}
+\put( 95,180){\line(0,-1){180}}\put( 65,180){\framebox(60,20){\small{Sem. serwera}}}
+\put(160,180){\line(0,-1){180}}\put(130,180){\framebox(60,20){Dane}}
+\put(225,180){\line(0,-1){180}}\put(195,180){\framebox(60,20){\small{Sem. klienta}}}
+\put(290,180){\line(0,-1){180}}\put(260,180){\framebox(60,20){\bf Klient}}
+
+\put( 30, 150){\vector( 1,0){130}}\put( 30, 150){\makebox(130,10){Zapisz wiadomo¶æ}}
+\put(290, 150){\vector(-1,0){ 65}}\put(225, 150){\makebox( 65,10){Opu¶æ}}
+\put( 30, 130){\vector( 1,0){195}}\put( 30, 130){\makebox(195,10){Podnie¶}}
+\put( 30, 110){\vector( 1,0){ 65}}\put( 30, 110){\makebox( 65,10){Opu¶æ}}
+\put(290, 110){\vector(-1,0){130}}\put(160, 110){\makebox(130,10){Odczytaj wiadomo¶æ}}
+
+\put(260,  80){\makebox(60,10){Przetwórz wiadomo¶æ}}
+
+\put(290,  60){\vector(-1,0){130}}\put(160,  60){\makebox(130,10){Zapisz odpowied¼}}
+\put(290,  40){\vector(-1,0){195}}\put( 95,  40){\makebox(195,10){Podnie¶}}
+\put( 30,  20){\vector( 1,0){130}}\put( 30,  20){\makebox(130,10){Odczytaj odpowied¼}}
+\put(290,  20){\vector(-1,0){ 65}}\put(225,  20){\makebox( 65,10){Opu¶æ}}
+
+\end{picture}
+
+\caption{Implementacja kolejki na semaforach i~pamiêci wspó³dzielonej.}\label{fig:kolejka}
+\end{figure}
+
+Ju¿ wcze¶niej wspomniano o~dwóch wyj±tkach.  S± to komunikaty
+informuj±ce o~zmianie stanu planszy oraz o~zakoñczeniu gry.  Z~powodów
+wydajno¶ciowych s± one wysy³ane do obu klientów jednocze¶nie, aby na
+maszynach weieloprocesorowych lub wielordzeniowych mog³y byæ
+przetwarzane równocze¶nie przez oba klienty.  Jest to jedyna sytuacja,
+gdy sterowanie ,,rozdziela siê na dwoje'' i~z~tego powodu klienty nie
+maj± prawa modyfikowaæ pamiêci wspó³dzielonej.  Rysunek
+\ref{fig:kolejka2} przedstawia uproszczony schemat wysy³ania tych
+komunikatów.
+
+
+\begin{figure}[btp]
+\centering
+
+\begin{picture}(320,200)(0,0)
+\put( 30,180){\line(0,-1){180}}\put(  0,180){\framebox(60,20){\bf Klient 1}}
+\put( 95,180){\line(0,-1){180}}\put( 65,180){\framebox(60,20){Dane 1}}
+\put(160,180){\line(0,-1){180}}\put(130,180){\framebox(60,20){\bf Serwer}}
+\put(225,180){\line(0,-1){180}}\put(195,180){\framebox(60,20){Dane 2}}
+\put(290,180){\line(0,-1){180}}\put(260,180){\framebox(60,20){\bf Klient 2}}
+
+\put(  0, 160){\makebox(60,10){Za¶nij}}
+\put(260, 160){\makebox(60,10){Za¶nij}}
+
+\put(160, 160){\vector(-1,0){ 65}}\put( 95, 160){\makebox( 65,10){Zapisz}}
+\put(160, 140){\vector( 1,0){ 65}}\put(160, 140){\makebox( 65,10){Zapisz}}
+\put(160, 120){\vector(-1,0){130}}\put( 30, 120){\makebox(130,10){Obud¼}}
+\put(160, 100){\vector( 1,0){130}}\put(160, 100){\makebox(130,10){Obud¼}}
+\put(130,  80){\makebox(60,10){Za¶nij}}
+\put(130,  60){\makebox(60,10){Za¶nij}}
+
+\put( 30, 100){\vector( 1, 0){ 65}}\put( 30, 100){\makebox( 65, 10){Odczytaj}}
+\put(290,  80){\vector(-1, 0){ 65}}\put(235,  80){\makebox( 65, 10){Odczytaj}}
+\put(  0,  70){\makebox(60,10){Przetwórz wiadomo¶æ}}
+\put(260,  50){\makebox(60,10){Przetwórz wiadomo¶æ}}
+\put( 30,  40){\vector( 1, 0){130}}\put( 30,  40){\makebox( 65, 10){Obud¼}}
+\put(290,  20){\vector(-1, 0){130}}\put(170,  20){\makebox( 65, 10){Obud¼}}
+\put(  0,  20){\makebox(60,10){Za¶nij}}
+\put(260,   0){\makebox(60,10){Za¶nij}}
+\end{picture}
+
+\caption{Wysy³anie wiadomo¶ci do dwóch klientów na raz.}\label{fig:kolejka2}
+\end{figure}
+
+
+\subsection{Zasoby wspó³dzielone}
+
+Poniewa¿ komunikaty zawsze id± od strony serwera do klienta
+(odpowiedzi nie traktujemy jak komunikatu) i~co wiêcej, sterowanie
+jest w~dwóch miejscach jednocze¶nie tylko w~przypadku, gdy obs³u¿enie
+wiadomo¶ci nie wymaga modyfikowania danych wspó³dzielonych, semafor
+serwera i~pole danych (tak naprawdê rozdzielone na pole typu
+wiadomo¶ci i~pole danych) ze wszystkich trzech kolejek s±
+uwspólnione.  Zmniejsza to listê potrzebnych zasobów wspó³dzielonych
+do nastêpuj±cych pozycji:
+
 \begin{tabular}{ll}
 {\tt msg}            & identyfikator przesy³anej wiadomo¶ci \\
 {\tt data}           & dane przypisane do wiadomo¶ci \\
@@ -309,20 +414,43 @@ Procesy obecne w~grze wspó³dziel± miêdzy sob± nastêpuj±ce zasoby:
 {\tt sem\_server}    & semafor serwera \\
 {\tt sem\_player[2]} & dwa semafory -- jeden dla ka¿dego gracza \\
 \end{tabular}
-\vspace{1em}
 
-\subsection{Serwer}
 
-Po zainicjowaniu wspó³dzielonych zasobów serwer postêpuje wed³ug
-nastêpuj±cego algorytmu:
+\subsection{Komunikaty}
+
+Serwer przesy³a do klientów nastêpuj±ce komunikaty:
+
+\begin{description}
+\item{\tt MAKE\_MOVE} serwer oczekuje od klienta wykonania ruchu.
+  W~odpowiedzi klient zapisuje w~polu danych ({\tt data}) pozycje, na
+  któr± chce siê poruszyæ.
+\item{\tt READ\_MAP} serwer informuje klienty o~zmianie stany
+  planszy.  Je¿eli klient wy¶wietla stan planszy na ekranie powinien
+  go uaktualniæ.  W~trakcie obs³ugi tego komunikatu klienty nie maj±
+  prawa modyfikowaæ danych wspó³dzielonych.
+\item{\tt GAME\_OVER} serwer informuje klienty o~zakoñczeniu gry.
+  W~polu danych ({\tt data}) zapisany jest zwyciêzca ($0$ i~$1$
+  oznaczaj± graczy, $2$ oznacza remis).  W~trakcie obs³ugi tego
+  komunikatu klienty nie maj± prawa modyfikowaæ danych
+  wspó³dzielonych.
+\end{description}
+
+
+\subsection{Algorytmy}
+
+Gdy ju¿ zasoby wspó³dzielone zostan± zainicjowane, poszczególne
+procesy zaczynaj± dzia³aæ wed³ug nastêpuj±cych algorytmów:
+
+
+\subsubsection{Serwer}
 
 \begin{lstlisting}
-DEFINE send ?message? to ?player?
+DEFINE send {message} to {player}
 	msg := message
 	up sem_player[player]
 	down sem_server
 
-DEFINE send ?message? to both
+DEFINE send {message} to both
 	msg := message
 	up sem_player[0], up sem_player[1]
 	down sem_server, down sem_server
@@ -351,9 +479,7 @@ data := zwyciêzca gry         /* Koniec gry, og³o¶ wynik */
 send GAME_OVER to both
 \end{lstlisting}
 
-\subsection{Klient}
-
-Tymczasem klienty postêpuj± wg nastêpuj±cego schematu:
+\subsubsection{Klient}
 
 \begin{lstlisting}
 /* Odczytaj swój numer */
@@ -377,6 +503,46 @@ WHILE NOT done
 /* Gra zakoñczona */
 wypisz informacje o zwyciêzcy (zapisana w winner)
 \end{lstlisting}
+
+
+\newpage
+\section{Sytuacje nadzwyczajne}
+
+W~trakcie rozgrywki mo¿e nast±piæ kilka sytuacji nadzwyczajnych, które
+procesy powinny obs³u¿yæ.  S± to: wys³anie sygna³y do serwera,
+niespodziewana ¶mieræ klienta oraz niespodziewana ¶mieræ serwera.
+
+\paragraph{Sygna³y}
+
+Serwer przechwytuje sygna³y {\tt SIGINT}, {\tt SIGQUIT} oraz {\tt
+  SIGTERM} i~po ich otrzymaniu wypisuje komunikat, wpierw niszczy
+stworzone przez siebie zasoby wspó³dzielone (pamiêæ i~semafory), aby
+ostatecznie zakoñczyæ swoje dzia³anie.  Dziêki obs³udze tych sygna³ów
+po rozgrywce nie pozostaj± nieu¿ywane zasoby wspó³dzielone, a~klienty
+mog± wykryæ zaistnia³± sytuacjê.
+
+\paragraph{¦mieræ klienta}
+
+Sytuacja, gdy klient zakoñczy dzia³anie jest najtrudniejsza do
+wykrycia.  Problem zosta³ rozwi±zany w~ten sposób, ¿e serwer kiedy
+tylko ¶pi na semaforze budzi siê co sekundê, aby wys³aæ sygna³ zero do
+obu klientów--klienty podaj± swój PID, gdy do³±czaj± siê do gry.
+Je¿eli wys³anie sygna³u siê nie powiedzie serwer wypisuje komunikat
+o~b³êdzie i~koñczy swoje dzia³anie.
+
+\paragraph{¦mieræ serwera}
+
+Jak to zosta³o opisane w~powy¿szym paragrafie, je¿eli serwer z~jakich¶
+powodów zakoñczy swoje dzia³anie przed koñcem rozgrywki, zwolni on
+stworzone przez siebie zasoby wspó³dzielone, a~w~tym i~zbiór
+semaforów.  Klient, który aktualnie zasn±³ na semaforze od razu
+zostanie poinformowany o~ich zniszczeniu.  Je¿eli natomiast klient
+w~danej chwili obs³uguje jak±¶ wiadomo¶æ (np.\ czeka a¿ u¿ytkownik
+dokona ruchu) zostanie on poinformowany o~b³êdzie w~momencie, gdy
+spróbuje podnie¶æ semafor serwera odsy³aj±c do niego odpowied¼.  W~obu
+przypadkach klient wypisze komunikat o~b³êdzie i~zakoñczy swoje
+dzia³anie.
+
 
 \end{document}
 
